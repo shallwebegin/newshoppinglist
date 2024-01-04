@@ -5,7 +5,6 @@ import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
 
 import 'package:http/http.dart' as http;
-import 'package:shopping_list/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -15,17 +14,8 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
-  final _formKey = GlobalKey<FormState>();
-  var _enteredName = '';
-  var _enteredQuantity = 1;
-  var _selectedCategory = categories[Categories.carbs];
-  var _isSending = false;
-
-  void _saveItem() async {
+  void _addItem() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSending = true;
-      });
       _formKey.currentState!.save();
       final url = Uri.https('flutter-prep-ff6cd-default-rtdb.firebaseio.com',
           'shopping-list.json');
@@ -43,16 +33,14 @@ class _NewItemState extends State<NewItem> {
       if (!context.mounted) {
         return;
       }
-      final Map<String, dynamic> resData = json.decode(response.body);
-
-      Navigator.of(context).pop(GroceryItem(
-          id: resData['name'],
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: _selectedCategory!));
+      final resData = Navigator.of(context).pop();
     }
   }
 
+  final _formKey = GlobalKey<FormState>();
+  var _enteredName = '';
+  var _enteredQuantity = 1;
+  var _selectedCategory = categories[Categories.carbs];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +54,6 @@ class _NewItemState extends State<NewItem> {
           child: Column(
             children: [
               TextFormField(
-                maxLength: 50,
                 decoration: const InputDecoration(
                   label: Text('Name'),
                 ),
@@ -75,7 +62,7 @@ class _NewItemState extends State<NewItem> {
                       value.isEmpty ||
                       value.trim().length <= 1 ||
                       value.trim().length > 50) {
-                    return '1 ila 50 arasi bir kelime giriniz';
+                    return 'Düzgün bilgiler girin';
                   }
                   return null;
                 },
@@ -96,8 +83,8 @@ class _NewItemState extends State<NewItem> {
                         if (value == null ||
                             value.isEmpty ||
                             int.tryParse(value) == null ||
-                            int.tryParse(value)! < 1) {
-                          return 'Duzgun bir sayi gir';
+                            int.tryParse(value)! < 0) {
+                          return 'Lütfen düzgün sayı giriniz';
                         }
                         return null;
                       },
@@ -111,31 +98,34 @@ class _NewItemState extends State<NewItem> {
                   ),
                   Expanded(
                     child: DropdownButtonFormField(
-                        value: _selectedCategory,
-                        items: [
-                          for (final category in categories.entries)
-                            DropdownMenuItem(
-                              value: category.value,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    color: category.value.color,
-                                  ),
-                                  const SizedBox(
-                                    width: 4,
-                                  ),
-                                  Text(category.value.title),
-                                ],
-                              ),
+                      value: _selectedCategory!,
+                      items: [
+                        for (final category in categories.entries)
+                          DropdownMenuItem(
+                            value: category.value,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  color: category.value.color,
+                                ),
+                                const SizedBox(
+                                  width: 4,
+                                ),
+                                Text(category.value.title)
+                              ],
                             ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
+                          ),
+                      ],
+                      onChanged: (value) {
+                        setState(
+                          () {
                             _selectedCategory = value;
-                          });
-                        }),
+                          },
+                        );
+                      },
+                    ),
                   )
                 ],
               ),
@@ -143,22 +133,14 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _isSending
-                        ? null
-                        : () {
-                            _formKey.currentState!.reset();
-                          },
+                    onPressed: () {
+                      _formKey.currentState!.reset();
+                    },
                     child: const Text('Reset'),
                   ),
                   ElevatedButton(
-                    onPressed: _isSending ? null : _saveItem,
-                    child: _isSending
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(),
-                          )
-                        : const Text('Add Item'),
+                    onPressed: _addItem,
+                    child: const Text('Add Item'),
                   ),
                 ],
               ),
